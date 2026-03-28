@@ -59,31 +59,15 @@ Prompts:
 
 ---
 
-## 6. Limitations and Bias 
+## 6. Limitations and Bias
 
-Where the system struggles or behaves unfairly. 
-
-Prompts:  
-
-- Features it does not consider  
-- Genres or moods that are underrepresented  
-- Cases where the system overfits to one preference  
-- Ways the scoring might unintentionally favor some users  
+The system ignores tempo preference, lyrics, and listening history, a user who replays a song gets the same result as one who skipped it. Lofi has 3 catalog entries while most genres have only 1, and 11 of 14 mood labels appear on a single song each, making mood nearly useless for most users. The system overfits to energy: high-energy songs like Gym Hero (0.93) surface in almost every high-energy profile regardless of genre, because energy proximity applies to all songs equally. This unintentionally favors users whose genre is overrepresented, a lofi listener gets three genre-matched results while a blues listener gets at most one, through no fault of the scoring logic.
 
 ---
 
-## 7. Evaluation  
+## 7. Evaluation
 
-How you checked whether the recommender behaved as expected. 
-
-Prompts:  
-
-- Which user profiles you tested  
-- What you looked for in the recommendations  
-- What surprised you  
-- Any simple tests or comparisons you ran  
-
-No need for numeric metrics unless you created some.
+Three profiles were tested: High-Energy Pop, Deep Intense Rock, and an adversarial case with conflicting preferences (high energy + melancholy mood). For the two standard profiles the expected song ranked first — Sunrise City and Storm Runner respectively — which matched musical intuition. A weight-shift experiment (halving genre, doubling energy) was also run to compare how much each rule influenced the rankings. The most surprising result was Gym Hero appearing in the top five for nearly every high-energy profile regardless of genre — it only sees the number 0.93 and considers the job done, like a store clerk handing you workout music whenever you ask for something intense. The adversarial conflicting-preference profile was equally revealing: genre match forced Delta Crossroads to #1 even though its energy (0.48) was far from the target (0.95), showing the system has no way to resolve contradictions in a user's preferences.
 
 ---
 

@@ -68,11 +68,24 @@ You can add more tests in `tests/test_recommender.py`.
 
 ## Experiments You Tried
 
-Use this section to document the experiments you ran. For example:
+Three user profiles were run through the recommender — two standard and one adversarial edge case.
 
-- What happened when you changed the weight on genre from 2.0 to 0.5
-- What happened when you added tempo or valence to the score
-- How did your system behave for different types of users
+### Profile 1 — High-Energy Pop
+![High-Energy Pop](screenshots/hign_energy.png)
+**Observation:** Genre match is decisive, both pop songs occupy #1 and #2 despite Gym Hero missing the mood. Rooftop Lights earns #3 on mood match alone (indie pop ≠ pop, so no genre points).
+
+---
+
+### Profile 2 — Deep Intense Rock
+![Deep Intense Rock](screenshots/deepintense.png)
+**Observation:** Storm Runner is a near-perfect match (4.855). The gap between #1 and #2 (nearly 2 points) shows how powerful the genre+mood double-match is. Metal's Shatter the Glass ranks #5 despite near-identical energy, no categorical match drags it down.
+
+---
+
+### Profile 3 — EDGE: High-Energy + Melancholy Mood (conflicting preferences)
+![High-Energy + Melancholy](screenshots/he_melan.png)
+
+**Observation:** The system is "tricked" by the conflict. Delta Crossroads wins on genre match (+2.0) even though its energy (0.48) is far from the target (0.95). Energy and mood never align simultaneously in the catalog, the system has no song that is both blues AND high-energy, so it falls back to genre as the tiebreaker. This exposes genre matching as a limitation.
 
 ---
 
