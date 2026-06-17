@@ -1,5 +1,17 @@
+import csv
 from typing import List, Dict, Tuple, Optional
 from dataclasses import dataclass
+
+# ── Scoring policy ────────────────────────────────────────────────────────
+# All tuning knobs for score_song() live here so the policy is visible and
+# adjustable in one place.
+GENRE_WEIGHT = 2.0       # categorical: exact genre match
+MOOD_WEIGHT = 1.0        # categorical: exact mood match
+ENERGY_WEIGHT = 1.0      # proximity: closeness to target energy
+ACOUSTIC_WEIGHT = 0.5    # acousticness alignment with likes_acoustic
+VALENCE_WEIGHT = 0.5     # proximity: closeness to target valence
+DEFAULT_ENERGY = 0.5
+DEFAULT_VALENCE = 0.65   # neutral-positive
 
 @dataclass
 class Song:
@@ -38,11 +50,13 @@ class Recommender:
         self.songs = songs
 
     def recommend(self, user: UserProfile, k: int = 5) -> List[Song]:
-        # TODO: Implement recommendation logic
+        # NOT YET IMPLEMENTED — placeholder returns the first k songs unsorted.
+        # The real, working scoring/ranking lives in recommend_songs() below.
         return self.songs[:k]
 
     def explain_recommendation(self, user: UserProfile, song: Song) -> str:
-        # TODO: Implement explanation logic
+        # NOT YET IMPLEMENTED — placeholder. Real explanations are built by
+        # score_song() below (the human-readable reason strings).
         return "Explanation placeholder"
 
 def load_songs(csv_path: str) -> List[Dict]:
@@ -50,7 +64,6 @@ def load_songs(csv_path: str) -> List[Dict]:
     Loads songs from a CSV file.
     Required by src/main.py
     """
-    import csv
     songs = []
     with open(csv_path, newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
@@ -70,6 +83,14 @@ def load_songs(csv_path: str) -> List[Dict]:
     print(f"Loaded songs: {len(songs)}")
     return songs
 
+def _proximity_points(value: float, target: float, weight: float) -> float:
+    """
+    Reward closeness to a target: full `weight` when value == target,
+    decreasing linearly to 0 at a distance of 1.0.
+    """
+    return round(weight * (1.0 - abs(value - target)), 3)
+
+
 def score_song(user_prefs: Dict, song: Dict) -> Tuple[float, List[str]]:
     """
     Scores a single song against a user preference profile.
@@ -81,37 +102,33 @@ def score_song(user_prefs: Dict, song: Dict) -> Tuple[float, List[str]]:
     score = 0.0
     reasons = []
 
-    # Rule 1 — Genre match: +2.0 pts (strongest categorical signal)
+    # Rule 1 — Genre match (strongest categorical signal)
     if song["genre"] == user_prefs.get("genre", ""):
-        score += 2.0
-        reasons.append(f"genre match: {song['genre']} (+2.0)")
+        score += GENRE_WEIGHT
+        reasons.append(f"genre match: {song['genre']} (+{GENRE_WEIGHT})")
 
-    # Rule 2 — Mood match: +1.0 pt
+    # Rule 2 — Mood match
     if song["mood"] == user_prefs.get("mood", ""):
-        score += 1.0
-        reasons.append(f"mood match: {song['mood']} (+1.0)")
+        score += MOOD_WEIGHT
+        reasons.append(f"mood match: {song['mood']} (+{MOOD_WEIGHT})")
 
-    # Rule 3 — Energy proximity: up to +1.0 pt
-    # Rewards closeness to target — not higher or lower, just nearer
-    target_energy = user_prefs.get("energy", 0.5)
-    energy_pts = round(1.0 - abs(song["energy"] - target_energy), 3)
+    # Rule 3 — Energy proximity: rewards closeness to target, not higher/lower
+    target_energy = user_prefs.get("energy", DEFAULT_ENERGY)
+    energy_pts = _proximity_points(song["energy"], target_energy, ENERGY_WEIGHT)
     score += energy_pts
     reasons.append(f"energy {song['energy']} vs target {target_energy} (+{energy_pts})")
 
-    # Rule 4 — Acousticness bonus: up to +0.5 pts
+    # Rule 4 — Acousticness bonus
     # likes_acoustic=True rewards high acousticness; False rewards low
     likes_acoustic = user_prefs.get("likes_acoustic", False)
-    if likes_acoustic:
-        acoustic_pts = round(0.5 * song["acousticness"], 3)
-    else:
-        acoustic_pts = round(0.5 * (1.0 - song["acousticness"]), 3)
+    aligned = song["acousticness"] if likes_acoustic else 1.0 - song["acousticness"]
+    acoustic_pts = round(ACOUSTIC_WEIGHT * aligned, 3)
     score += acoustic_pts
     reasons.append(f"acousticness {song['acousticness']} (+{acoustic_pts})")
 
-    # Rule 5 — Valence proximity: up to +0.5 pts
-    # Default target valence 0.65 (neutral-positive) if not in profile
-    target_valence = user_prefs.get("valence", 0.65)
-    valence_pts = round(0.5 * (1.0 - abs(song["valence"] - target_valence)), 3)
+    # Rule 5 — Valence proximity
+    target_valence = user_prefs.get("valence", DEFAULT_VALENCE)
+    valence_pts = _proximity_points(song["valence"], target_valence, VALENCE_WEIGHT)
     score += valence_pts
     reasons.append(f"valence {song['valence']} vs target {target_valence} (+{valence_pts})")
 
